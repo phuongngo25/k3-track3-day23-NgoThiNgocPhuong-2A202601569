@@ -1,0 +1,32 @@
+{
+  "scenario_id": "S04_risky",
+  "thread_id": "resume-S04_risky-a1f8fde8",
+  "database": "outputs/checkpoints.sqlite",
+  "paused_at": [
+    "approval"
+  ],
+  "interrupt_payload": [
+    "{'question': 'Approve this action?', 'proposed_action': 'Refund this customer and send confirmation email (risk_level=high)', 'scenario_id': 'S04_risky'}"
+  ],
+  "recovered_next_after_restart": [
+    "approval"
+  ],
+  "approval": {
+    "approved": true,
+    "reviewer": "human-operator",
+    "comment": "resumed after restart"
+  },
+  "checkpoints_written": 10,
+  "final_answer": "I am happy to let you know that a human operator approved your high-risk request, and we have successfully processed your refund under reference ACT-55694. A confirmation email has also been sent out to complete this process. Please let us know if there is anything else we can assist you with today!",
+  "nodes_visited": [
+    "intake",
+    "classify",
+    "risky_action",
+    "approval",
+    "tool",
+    "evaluate",
+    "answer",
+    "finalize"
+  ],
+  "resumed_ok": true
+}

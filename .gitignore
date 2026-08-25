@@ -21,10 +21,13 @@ env/
 # Environment
 .env
 
-# Persistence
+# Persistence (SQLite checkpoint stores are run artefacts, not source)
 checkpoints.db
 checkpoints.db-wal
 checkpoints.db-shm
+outputs/*.sqlite
+outputs/*.sqlite-wal
+outputs/*.sqlite-shm
 
 # Testing
 .pytest_cache/

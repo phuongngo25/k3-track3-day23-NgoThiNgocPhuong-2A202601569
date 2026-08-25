@@ -1,3 +1,6 @@
 scenarios_path: data/sample/scenarios.jsonl
-checkpointer: memory
-report_path: reports/lab_report.md
+# sqlite so every run leaves an inspectable checkpoint lineage on disk
+# (see `agent-lab history` / `agent-lab demo-resume`). Use `memory` for a throwaway run.
+checkpointer: sqlite
+database_url: outputs/checkpoints.sqlite
+report_path: reports/lab_report_generated.md

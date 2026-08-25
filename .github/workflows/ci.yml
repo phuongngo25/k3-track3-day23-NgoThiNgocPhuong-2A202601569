@@ -11,6 +11,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -e '.[dev]'
+      # sqlite extra: the persistence extension and the resume demo need SqliteSaver
+      - run: pip install -e '.[dev,sqlite]'
       - run: make lint
+      - run: make typecheck
       - run: make test
+      # No API key in CI, so the LLM-backed nodes take their documented offline fallback path.
+      # This proves the graph still terminates on every route and that metrics.json validates.
+      - run: make run-scenarios
+      - run: make grade-local
+      - uses: actions/upload-artifact@v4
+        with:
+          name: metrics
+          path: outputs/metrics.json

@@ -14,6 +14,7 @@ dependencies = [
   "rich>=13.7",
   "typer>=0.12",
   "langgraph>=0.3.0",
+  "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -41,9 +42,33 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "ANN"]
-ignore = ["ANN101", "ANN102"]
+# ANN401: the checkpointer handle and event metadata are deliberately `Any` — the concrete type
+# depends on the backend (MemorySaver / SqliteSaver / PostgresSaver) and on the caller.
+ignore = ["ANN401"]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest discovers by name; return annotations on test functions add noise, not safety.
+# Starter-provided test files: keep them byte-identical to the skeleton rather than
+# reformatting them to satisfy the linter.
+"tests/*" = ["ANN201", "ANN001", "E501", "E402", "F401"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = "-q --strict-markers"
 testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+# Optional extras: installed per-provider, so their stubs may legitimately be absent.
+module = [
+  "yaml",
+  "langgraph.checkpoint.postgres",
+  "langgraph.checkpoint.sqlite",
+  "langchain_google_genai",
+  "langchain_openai",
+  "langchain_anthropic",
+]
+ignore_missing_imports = true

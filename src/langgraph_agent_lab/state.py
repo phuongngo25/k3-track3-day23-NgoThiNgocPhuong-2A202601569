@@ -1,14 +1,21 @@
 """State schema for the Day 08 LangGraph lab.
 
-Students should extend the schema only when needed. Keep state lean and serializable.
+Design rule: state stays lean and JSON-serializable so any checkpointer (memory, SQLite,
+Postgres) can persist it without custom encoders. Fields fall into two families:
+
+* **overwrite** — "current truth" scalars (route, attempt, evaluation_result...). LangGraph's
+  default reducer replaces them, which is what we want: reading a stale route would break routing.
+* **append-only** (``Annotated[list, add]``) — audit trails (messages, tool_results, errors,
+  events). Nodes return single-element lists and the reducer concatenates, so the retry loop can
+  visit ``tool`` three times without any node needing to read-modify-write a list.
 """
 
 from __future__ import annotations
 
 from enum import StrEnum
+from operator import add
 from typing import Annotated, Any, TypedDict
 
-from operator import add
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -20,6 +27,17 @@ class Route(StrEnum):
     ERROR = "error"
     DEAD_LETTER = "dead_letter"
     DONE = "done"
+
+
+#: Routes that ``classify_node`` is allowed to emit. DEAD_LETTER/DONE are terminal bookkeeping
+#: values produced by nodes, never by the classifier.
+CLASSIFIABLE_ROUTES: tuple[str, ...] = (
+    Route.RISKY.value,
+    Route.TOOL.value,
+    Route.MISSING_INFO.value,
+    Route.ERROR.value,
+    Route.SIMPLE.value,
+)
 
 
 class LabEvent(BaseModel):
@@ -41,21 +59,35 @@ class ApprovalDecision(BaseModel):
 class AgentState(TypedDict, total=False):
     """LangGraph state.
 
-    TODO(student): decide which fields should be append-only and which should be overwritten.
-    The current annotations give a safe starting point for auditability.
+    See module docstring for the overwrite vs append-only rationale.
     """
 
+    # ── identity / inputs (overwrite) ──────────────────────────────────
     thread_id: str
     scenario_id: str
     query: str
+
+    # ── classification + control flow (overwrite) ─────────────────────
     route: str
     risk_level: str
     attempt: int
     max_attempts: int
+
+    # ── student-added control fields (overwrite) ──────────────────────
+    #: "success" | "needs_retry" — gate read by route_after_evaluate.
+    evaluation_result: str
+    #: Clarification question emitted on the missing_info / rejected-approval paths.
+    pending_question: str | None
+    #: Human-readable description of the side-effecting action awaiting approval.
+    proposed_action: str | None
+    #: ApprovalDecision as a plain dict (serializable) — read by route_after_approval.
+    approval: dict[str, Any] | None
+    #: Set by classify_node when the LLM call failed and the heuristic fallback was used.
+    classifier_mode: str
+
     final_answer: str | None
-    # TODO(student): you will need additional fields for clarification, risky actions,
-    # approval decisions, and retry-loop gating. Add them as you implement nodes.
-    # Hint: check what your nodes return and what your routing functions read.
+
+    # ── append-only audit trails ──────────────────────────────────────
     messages: Annotated[list[str], add]
     tool_results: Annotated[list[str], add]
     errors: Annotated[list[str], add]
@@ -89,6 +121,11 @@ def initial_state(scenario: Scenario) -> AgentState:
         "risk_level": "unknown",
         "attempt": 0,
         "max_attempts": scenario.max_attempts,
+        "evaluation_result": "",
+        "pending_question": None,
+        "proposed_action": None,
+        "approval": None,
+        "classifier_mode": "",
         "final_answer": None,
         "messages": [],
         "tool_results": [],
@@ -99,4 +136,5 @@ def initial_state(scenario: Scenario) -> AgentState:
 
 def make_event(node: str, event_type: str, message: str, **metadata: Any) -> dict[str, Any]:
     """Create a normalized event payload."""
-    return LabEvent(node=node, event_type=event_type, message=message, metadata=metadata).model_dump()
+    event = LabEvent(node=node, event_type=event_type, message=message, metadata=metadata)
+    return event.model_dump()

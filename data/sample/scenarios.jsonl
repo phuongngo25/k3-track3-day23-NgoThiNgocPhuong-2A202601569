@@ -5,3 +5,8 @@
 {"id":"S05_error","query":"Timeout failure while processing request","expected_route":"error","requires_approval":false,"should_retry":true,"tags":["retry"]}
 {"id":"S06_delete","query":"Delete customer account after support verification","expected_route":"risky","requires_approval":true,"should_retry":false,"tags":["hitl","destructive"]}
 {"id":"S07_dead_letter","query":"System failure cannot recover after multiple attempts","expected_route":"error","requires_approval":false,"should_retry":true,"max_attempts":1,"tags":["dead_letter","retry"]}
+{"id":"S08_cancel_sub","query":"Cancel my subscription immediately and stop billing me","expected_route":"risky","requires_approval":true,"should_retry":false,"tags":["custom","hitl","billing"]}
+{"id":"S09_howto_delete","query":"How do I delete my account from the settings page?","expected_route":"simple","requires_approval":false,"should_retry":false,"tags":["custom","trap","instructional-not-risky"]}
+{"id":"S10_tracking","query":"Where is my package? Tracking number 1Z999AA10123456784","expected_route":"tool","requires_approval":false,"should_retry":false,"tags":["custom","tool"]}
+{"id":"S11_vague","query":"it broke","expected_route":"missing_info","requires_approval":false,"should_retry":false,"tags":["custom","clarification"]}
+{"id":"S12_service_down","query":"Service unavailable 503 when I open the billing dashboard","expected_route":"error","requires_approval":false,"should_retry":true,"tags":["custom","retry"]}
